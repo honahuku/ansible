@@ -1,7 +1,6 @@
 # ansible
 ## インストール
-リモートホストはSSHが出来て、python2か3が入っていれば良い。  
-ansibleを入れる必要はない。  
+リモートホストはpython2か3が入っており、ローカルからSSHが出来れば良い。ansibleを入れる必要はない。  
 ローカルクライアントには以下の手順でインストールを行う  
 ```bash
 python3 -m pip install --user ansible
@@ -10,4 +9,10 @@ https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.ht
 
 ## ansible-vault
 `ansible-vault`でsecretを暗号化しコミット可能な形にできる  
-`--ask-vault-pass`は`ansible-vault`で暗号化したファイルを注入するときのみ、playbook.yamlの前につける  
+```bash
+ansible-vault encrypt foo.yml
+```
+暗号化したファイルをplaybookで使う時は`--ask-vault-pass`をplaybook.yamlの前につける  
+```bash
+ansible-playbook -i inventory.yaml --ask-vault-pass foo.yml
+```

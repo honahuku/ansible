@@ -1,0 +1,149 @@
+- hosts: vpnservers
+  become: yes
+  tasks:
+    - name: aptのアップデート
+      apt:
+        upgrade: no
+        update_cache: yes
+
+    - name: 必要なパッケージをインストール
+      apt:
+        name:
+          - curl
+          - grep
+          - make
+          - dnsmasq
+          - gcc
+          - libssl-dev
+          - libcrypto++-dev
+          - libiconv-hook-dev
+          - libedit-dev
+          - libncurses5-dev
+          - zlib1g-dev
+          - libpthread-stubs0-dev
+        state: present
+
+    - name: SoftEtherの最新版リンクを取得
+      shell: >
+        URL="https://www.softether-download.com/files/softether/";
+        latest_link=$(curl -fsSL $URL | grep -oP '(?<=HREF=")/files/softether/.+?-rtm-.+?(?=")' | sort -Vr | head -n 1);
+        echo "https://www.softether-download.com${latest_link}"
+      register: version_link
+      changed_when: False
+
+    - name: マシンのアーキテクチャを取得
+      ansible.builtin.setup:
+        gather_subset:
+          - '!all'
+          - '!min'
+          - hardware
+
+    - name: ダウンロードリンクを生成
+      set_fact:
+        download_link: >-
+          {{ version_link.stdout }}Linux/SoftEther_VPN_Server/{{ '64bit_-_Intel_x64_or_AMD64' if ansible_facts['architecture'] == 'x86_64' else '64bit_-_ARM_64bit' }}/softether-vpnserver-{{ version_link.stdout.split('/')[-2].split('-tree')[0] }}-linux-{{ 'x64' if ansible_facts['architecture'] == 'x86_64' else 'arm64' }}-64bit.tar.gz
+
+    - name: SoftEtherをダウンロードして解凍
+      ansible.builtin.unarchive:
+        src: "{{ download_link }}"
+        dest: /usr/local/
+        remote_src: yes
+
+    - name: SoftEtherをビルド
+      command:
+        cmd: make
+        chdir: /usr/local/vpnserver
+
+    - name: vpnserverのパーミッションを設定
+      ansible.builtin.file:
+        path: /usr/local/vpnserver/
+        state: directory
+        mode: 600
+        recurse: yes
+
+    - name: vpncmdのパーミッションを設定
+      ansible.builtin.file:
+        path: /usr/local/vpnserver/vpncmd
+        state: file
+        mode: 700
+
+    - name: vpnserverのパーミッションを設定
+      ansible.builtin.file:
+        path: /usr/local/vpnserver/vpnserver
+        state: file
+        mode: 700
+
+    - name: SoftEtherを起動
+      command: /usr/local/vpnserver/vpnserver start
+
+    - name: SoftEtherの起動を待機
+      pause:
+        seconds: 5
+
+    - name: Secretを配置
+      ansible.builtin.copy:
+        src: secret.txt
+        dest: /usr/local/vpnserver/secret.txt
+        decrypt: yes
+
+    - name: SoftEtherにbatch.txtとsecret.txtをロード
+      command: /usr/local/vpnserver/vpncmd /server localhost /in:/usr/local/vpnserver/{{ item }}
+      loop:
+        - batch.txt
+        - secret.txt
+
+    - name: NICの状態を取得する
+      setup:
+        gather_subset: network
+      register: network_facts
+
+    - name: デフォルトゲートウェイとNIC名を設定
+      set_fact:
+        default_route_ip: "{{ network_facts.ansible_facts.ansible_default_ipv4.address }}"
+        default_interface: "{{ network_facts.ansible_facts.ansible_default_ipv4.interface }}"
+
+    - name: softether-iptables.shをSoftEtherのディレクトリに配置
+      template:
+        src: softether-iptables.sh.j2
+        dest: /usr/local/vpnserver/softether-iptables.sh
+        mode: '0700'
+
+    - name: dnsmasq.confをコピー
+      template:
+        src: dnsmasq.conf.j2
+        dest: /etc/dnsmasq.conf
+        backup: yes
+
+    - name: sysctlのパラメータを設定
+      ansible.posix.sysctl:
+        name: "{{ item.name }}"
+        value: "{{ item.value }}"
+        state: present
+      register: result
+      until: result is succeeded
+      retries: 3
+      delay: 5
+      loop:
+        - { name: 'net.core.somaxconn', value: '4096' }
+        - { name: 'net.ipv4.ip_forward', value: '1' }
+        - { name: 'net.ipv4.conf.all.send_redirects', value: '0' }
+        - { name: 'net.ipv4.conf.all.accept_redirects', value: '1' }
+        - { name: 'net.ipv4.conf.all.rp_filter', value: '1' }
+        - { name: 'net.ipv4.conf.default.send_redirects', value: '1' }
+        - { name: 'net.ipv4.conf.default.proxy_arp', value: '0' }
+
+    - name: SoftEtherをsystemdに登録
+      copy:
+        src: vpnserver.service
+        dest: /lib/systemd/system
+
+    - name: サービスを有効化
+      ansible.builtin.systemd:
+        state: started
+        name: vpnserver
+        daemon_reload: true
+        enabled: true
+      register: result
+      until: result is succeeded
+      retries: 3
+      delay: 10

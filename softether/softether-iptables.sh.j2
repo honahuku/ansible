@@ -1,0 +1,20 @@
+#!/bin/bash
+TAP_ADDR=10.200.0.1
+TAP_INTERFACE=tap_soft
+VPN_SUBNET=10.200.0.0/14
+VPNEXTERNALIP={{ default_route_ip }}
+
+ip addr add 10.200.0.1/14 dev tap_soft
+
+iptables -F && iptables -X
+/sbin/ifconfig $TAP_INTERFACE $TAP_ADDR
+
+iptables -t nat -A POSTROUTING -s $VPN_SUBNET -j SNAT --to-source $VPNEXTERNALIP
+
+iptables -A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+iptables -A OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+iptables -A FORWARD -m state --state ESTABLISHED,RELATED -j ACCEPT
+
+iptables -A INPUT -s $VPN_SUBNET -m state --state NEW -j ACCEPT
+iptables -A OUTPUT -s $VPN_SUBNET -m state --state NEW -j ACCEPT
+iptables -A FORWARD -s $VPN_SUBNET -m state --state NEW -j ACCEPT

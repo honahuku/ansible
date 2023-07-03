@@ -11,7 +11,6 @@
         name:
           - curl
           - grep
-          - expect
           - make
           - dnsmasq
           - gcc
@@ -130,41 +129,31 @@
       no_log: true
 
     - name: グループを作成する
-      shell: |
-        expect -c "
-          # TODO: ポリシーを読み込んで実行する
-          set timeout 5
-          spawn /usr/local/vpnserver/vpncmd /server localhost /password:{{ srv_pass }} /hub:vpnhub1 /cmd GroupCreate {{ item.name }} /REALNAME:{{ item.realname }} /NOTE:{{ item.note }}
-          expect \"Password:\"
-          send \"{{ hub_pass }}\n\"
-          expect \"$\"
-          exit 0
-        "
+      expect:
+        command: "/usr/local/vpnserver/vpncmd /server localhost /password:{{ srv_pass }} /hub:vpnhub1 /cmd GroupCreate {{ item.name }} /REALNAME:{{ item.realname }} /NOTE:{{ item.note }}"
+        responses:
+          "Password:": "{{ hub_pass }}"
       loop: "{{ csv_dict['group.csv'] }}"
+      # secretであるuser.csvが含まれているので変換後のログを出力しない
+      no_log: true
 
     - name: ユーザーを作成する
-      shell: |
-        expect -c "
-          set timeout 5
-          spawn /usr/local/vpnserver/vpncmd /server localhost /password:{{ srv_pass }} /hub:vpnhub1 /cmd UserCreate {{ item.user }} /GROUP:{{ item.group }} /NOTE:{{ item.note }} /REALNAME:{{ item.realname }}
-          expect \"Password:\"
-          send \"{{ hub_pass }}\n\"
-          expect \"$\"
-          exit 0
-        "
+      expect:
+        command: "/usr/local/vpnserver/vpncmd /server localhost /password:{{ srv_pass }} /hub:vpnhub1 /cmd UserCreate {{ item.user }} /GROUP:{{ item.group }} /REALNAME:{{ item.realname }} /NOTE:{{ item.note }}"
+        responses:
+          "Password:": "{{ hub_pass }}"
       loop: "{{ csv_dict['user.csv'] }}"
+      # secretであるuser.csvが含まれているので変換後のログを出力しない
+      no_log: true
 
     - name: ユーザーのパスワードを設定する
-      shell: |
-        expect -c "
-          set timeout 5
-          spawn /usr/local/vpnserver/vpncmd /server localhost /password:{{ srv_pass }} /hub:vpnhub1 /cmd UserPasswordSet {{ item.user }} /password:{{ item.password }}
-          expect \"Password:\"
-          send \"{{ hub_pass }}\n\"
-          expect \"$\"
-          exit 0
-        "
+      expect:
+        command: "/usr/local/vpnserver/vpncmd /server localhost /password:{{ srv_pass }} /hub:vpnhub1 /cmd UserPasswordSet {{ item.user }} /password:{{ item.password }}"
+        responses:
+          "Password:": "{{ hub_pass }}"
       loop: "{{ csv_dict['user.csv'] }}"
+      # secretであるuser.csvが含まれているので変換後のログを出力しない
+      no_log: true
 
     - name: ansibleで使った設定ファイルを削除
       ansible.builtin.file:

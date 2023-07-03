@@ -1,0 +1,9 @@
+name,value,note
+NoRouting,no,none
+MaxConnection,8,none
+FixPassword,yes,none
+MultiLogins,1,none
+CheckIP,yes,none
+CheckMac,yes,none
+CheckIPv6,yes,none
+AutoDisconnect,86400,none

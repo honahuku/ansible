@@ -1,2 +1,2 @@
 [vpnservers]
-192.0.2.0 ansible_user=ubuntu
+# 192.0.2.0 ansible_user=ubuntu

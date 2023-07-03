@@ -1,0 +1,38 @@
+- hosts: vpnservers
+  become: yes
+  tasks:
+    - name: ansibleで使う設定ファイルをコピー
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: "/usr/local/vpnserver/{{ item }}"
+        owner: "{{ ansible_user }}"
+        mode: 664
+        decrypt: yes
+      loop:
+        - secret.txt
+        - group.csv
+        - policy.csv
+        - user.csv
+
+    - name: csvを変数に格納
+      community.general.read_csv:
+        path: "/usr/local/vpnserver/{{ item }}"
+      register: csv_data
+      loop:
+        - group.csv
+        - policy.csv
+        - user.csv
+
+    # ファイル名をキーとして取り出したい
+    - name: csv_dataを辞書型に変換
+      set_fact:
+        csv_dict: "{{ csv_dict | default({}) | combine({item.item: item.list}) }}"
+      loop: "{{ csv_data.results }}"
+      # secretであるuser.csvが含まれているので変換後のログを出力しない
+      no_log: true
+
+    - name: Display group.csv names
+      debug:
+        msg: "{{ item.name }}"
+      loop: "{{ csv_dict['group.csv'] }}"
+

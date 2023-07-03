@@ -34,8 +34,8 @@
     - name: マシンのアーキテクチャを取得
       ansible.builtin.setup:
         gather_subset:
-          - '!all'
-          - '!min'
+          - "!all"
+          - "!min"
           - hardware
 
     - name: ダウンロードリンクを生成
@@ -105,6 +105,9 @@
     - name: サーバーパスワードを設定
       shell: "/usr/local/vpnserver/vpncmd /server localhost /cmd ServerPasswordSet {{ srv_pass }}"
 
+    - name: デフォルトのHUBを削除
+      shell: "/usr/local/vpnserver/vpncmd /server localhost /password:{{ srv_pass }} /cmd HubDelete DEFAULT"
+
     - name: Hubの作成とパスワードの設定
       shell: "/usr/local/vpnserver/vpncmd /server localhost /password:{{ srv_pass }} /cmd HubCreate vpnhub1 /PASSWORD:{{ hub_pass }}"
 
@@ -120,7 +123,7 @@
         - policy.csv
         - user.csv
 
-    # ファイル名をキーとして取り出したい
+    # ファイル名をキーとして取り出したいのでリストのまま使わず辞書に変換する
     - name: csv_dataを辞書型に変換
       set_fact:
         csv_dict: "{{ csv_dict | default({}) | combine({item.item: item.list}) }}"
@@ -136,6 +139,13 @@
       loop: "{{ csv_dict['group.csv'] }}"
       # secretであるuser.csvが含まれているので変換後のログを出力しない
       no_log: true
+
+    - name: Generalグループにポリシーを設定する
+      expect:
+        command: "/usr/local/vpnserver/vpncmd /server localhost /password:{{ srv_pass }} /hub:vpnhub1 /cmd GroupPolicySet General /NAME:{{ item.name }} /VALUE:{{ item.value }}"
+        responses:
+          "Password:": "{{ hub_pass }}"
+      loop: "{{ csv_dict['ansible'] }}"
 
     - name: ユーザーを作成する
       expect:
@@ -197,13 +207,13 @@
       retries: 3
       delay: 5
       loop:
-        - { name: 'net.core.somaxconn', value: '4096' }
-        - { name: 'net.ipv4.ip_forward', value: '1' }
-        - { name: 'net.ipv4.conf.all.send_redirects', value: '0' }
-        - { name: 'net.ipv4.conf.all.accept_redirects', value: '1' }
-        - { name: 'net.ipv4.conf.all.rp_filter', value: '1' }
-        - { name: 'net.ipv4.conf.default.send_redirects', value: '1' }
-        - { name: 'net.ipv4.conf.default.proxy_arp', value: '0' }
+        - { name: "net.core.somaxconn", value: "4096" }
+        - { name: "net.ipv4.ip_forward", value: "1" }
+        - { name: "net.ipv4.conf.all.send_redirects", value: "0" }
+        - { name: "net.ipv4.conf.all.accept_redirects", value: "1" }
+        - { name: "net.ipv4.conf.all.rp_filter", value: "1" }
+        - { name: "net.ipv4.conf.default.send_redirects", value: "1" }
+        - { name: "net.ipv4.conf.default.proxy_arp", value: "0" }
 
     - name: SoftEtherをsystemdに登録
       copy:

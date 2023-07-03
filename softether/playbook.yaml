@@ -145,7 +145,7 @@
         command: "/usr/local/vpnserver/vpncmd /server localhost /password:{{ srv_pass }} /hub:vpnhub1 /cmd GroupPolicySet General /NAME:{{ item.name }} /VALUE:{{ item.value }}"
         responses:
           "Password:": "{{ hub_pass }}"
-      loop: "{{ csv_dict['ansible'] }}"
+      loop: "{{ csv_dict['policy.csv'] }}"
 
     - name: ユーザーを作成する
       expect:

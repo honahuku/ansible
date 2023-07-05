@@ -1,0 +1,78 @@
+- hosts: vpnservers
+  become: yes
+  tasks:
+    - name: ansibleで使う設定ファイルをコピー
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: "/usr/local/vpnserver/{{ item }}"
+        owner: "{{ ansible_user }}"
+        mode: 664
+        decrypt: yes
+      loop:
+        - secret.txt
+        - group.csv
+        - policy.csv
+        - user.csv
+
+    - name: secretをbashの変数に格納
+      shell: |
+        source /usr/local/vpnserver/secret.txt
+        echo "srv_pass=${srv_pass} hub_pass=${hub_pass}"
+      register: secrets
+      args:
+        executable: /bin/bash
+
+    - name: secretをfactに格納
+      set_fact:
+        srv_pass: "{{ secrets.stdout.split()[0].split('=')[1] }}"
+        hub_pass: "{{ secrets.stdout.split()[1].split('=')[1] }}"
+
+    - name: csvを変数に格納
+      community.general.read_csv:
+        path: "/usr/local/vpnserver/{{ item }}"
+      register: csv_data
+      loop:
+        - group.csv
+        - policy.csv
+        - user.csv
+
+    # ファイル名をキーとして取り出したいのでリストのまま使わず辞書に変換する
+    - name: csv_dataを辞書型に変換
+      set_fact:
+        csv_dict: "{{ csv_dict | default({}) | combine({item.item: item.list}) }}"
+      loop: "{{ csv_data.results }}"
+      # secretであるuser.csvが含まれているので変換後のログを出力しない
+      no_log: true
+
+    - name: ユーザーを作成する
+      expect:
+        command: "timeout 5 /usr/local/vpnserver/vpncmd /server localhost /password:{{ srv_pass }} /hub:vpnhub1 /cmd UserCreate {{ item.user }} /GROUP:{{ item.group }} /REALNAME:{{ item.realname }} /NOTE:{{ item.note }}"
+        responses:
+          "Password:": "{{ hub_pass }}"
+      register: result
+      # Error code: 66はユーザーが既に登録されているエラーなので無視する
+      failed_when: 'result.rc != 0 and "Error occurred. (Error code: 66)" not in result.stdout'
+      loop: "{{ csv_dict['user.csv'] }}"
+      # secretであるuser.csvが含まれているので変換後のログを出力しない
+      no_log: true
+
+    - name: ユーザーのパスワードを設定する
+      expect:
+        command: "timeout 5 /usr/local/vpnserver/vpncmd /server localhost /password:{{ srv_pass }} /hub:vpnhub1 /cmd UserPasswordSet {{ item.user }} /password:{{ item.password }}"
+        responses:
+          "Password:": "{{ hub_pass }}"
+      register: result
+      failed_when: 'result.rc != 0 and "Error occurred. (Error code: 66)" not in result.stdout'
+      loop: "{{ csv_dict['user.csv'] }}"
+      # secretであるuser.csvが含まれているので変換後のログを出力しない
+      no_log: true
+
+    - name: ansibleで使った設定ファイルを削除
+      ansible.builtin.file:
+        path: "/usr/local/vpnserver/{{ item }}"
+        state: absent
+      loop:
+        - secret.txt
+        - group.csv
+        - policy.csv
+        - user.csv

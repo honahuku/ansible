@@ -1,2 +1,8 @@
-[vpnservers]
-192.0.2.0 ansible_user=ubuntu
+all:
+  children:
+    vpnservers:
+      hosts:
+        192.0.2.0:
+        192.0.2.1:
+      vars:
+        ansible_user: ubuntu

@@ -103,16 +103,16 @@
         hub_pass: "{{ secrets.stdout.split()[1].split('=')[1] }}"
 
     - name: サーバーパスワードを設定
-      shell: "/usr/local/vpnserver/vpncmd /server localhost /cmd ServerPasswordSet {{ srv_pass }}"
+      shell: "timeout 5 /usr/local/vpnserver/vpncmd /server localhost /cmd ServerPasswordSet {{ srv_pass }}"
 
     - name: デフォルトのHUBを削除
-      shell: "/usr/local/vpnserver/vpncmd /server localhost /password:{{ srv_pass }} /cmd HubDelete DEFAULT"
+      shell: "timeout 5 /usr/local/vpnserver/vpncmd /server localhost /password:{{ srv_pass }} /cmd HubDelete DEFAULT"
 
     - name: Hubの作成とパスワードの設定
-      shell: "/usr/local/vpnserver/vpncmd /server localhost /password:{{ srv_pass }} /cmd HubCreate vpnhub1 /PASSWORD:{{ hub_pass }}"
+      shell: "timeout 5 /usr/local/vpnserver/vpncmd /server localhost /password:{{ srv_pass }} /cmd HubCreate vpnhub1 /PASSWORD:{{ hub_pass }}"
 
     - name: ブリッジを作成
-      shell: "/usr/local/vpnserver/vpncmd /server localhost /password:{{ srv_pass }} /cmd BridgeCreate vpnhub1 /DEVICE:soft /TAP:yes"
+      shell: "timeout 5 /usr/local/vpnserver/vpncmd /server localhost /password:{{ srv_pass }} /cmd BridgeCreate vpnhub1 /DEVICE:soft /TAP:yes"
 
     - name: csvを変数に格納
       community.general.read_csv:
@@ -133,7 +133,7 @@
 
     - name: グループを作成する
       expect:
-        command: "/usr/local/vpnserver/vpncmd /server localhost /password:{{ srv_pass }} /hub:vpnhub1 /cmd GroupCreate {{ item.name }} /REALNAME:{{ item.realname }} /NOTE:{{ item.note }}"
+        command: "timeout 5 /usr/local/vpnserver/vpncmd /server localhost /password:{{ srv_pass }} /hub:vpnhub1 /cmd GroupCreate {{ item.name }} /REALNAME:{{ item.realname }} /NOTE:{{ item.note }}"
         responses:
           "Password:": "{{ hub_pass }}"
       loop: "{{ csv_dict['group.csv'] }}"
@@ -142,14 +142,14 @@
 
     - name: Generalグループにポリシーを設定する
       expect:
-        command: "/usr/local/vpnserver/vpncmd /server localhost /password:{{ srv_pass }} /hub:vpnhub1 /cmd GroupPolicySet General /NAME:{{ item.name }} /VALUE:{{ item.value }}"
+        command: "timeout 5 /usr/local/vpnserver/vpncmd /server localhost /password:{{ srv_pass }} /hub:vpnhub1 /cmd GroupPolicySet General /NAME:{{ item.name }} /VALUE:{{ item.value }}"
         responses:
           "Password:": "{{ hub_pass }}"
       loop: "{{ csv_dict['policy.csv'] }}"
 
     - name: ユーザーを作成する
       expect:
-        command: "/usr/local/vpnserver/vpncmd /server localhost /password:{{ srv_pass }} /hub:vpnhub1 /cmd UserCreate {{ item.user }} /GROUP:{{ item.group }} /REALNAME:{{ item.realname }} /NOTE:{{ item.note }}"
+        command: "timeout 5 /usr/local/vpnserver/vpncmd /server localhost /password:{{ srv_pass }} /hub:vpnhub1 /cmd UserCreate {{ item.user }} /GROUP:{{ item.group }} /REALNAME:{{ item.realname }} /NOTE:{{ item.note }}"
         responses:
           "Password:": "{{ hub_pass }}"
       loop: "{{ csv_dict['user.csv'] }}"
@@ -158,7 +158,7 @@
 
     - name: ユーザーのパスワードを設定する
       expect:
-        command: "/usr/local/vpnserver/vpncmd /server localhost /password:{{ srv_pass }} /hub:vpnhub1 /cmd UserPasswordSet {{ item.user }} /password:{{ item.password }}"
+        command: "timeout 5 /usr/local/vpnserver/vpncmd /server localhost /password:{{ srv_pass }} /hub:vpnhub1 /cmd UserPasswordSet {{ item.user }} /password:{{ item.password }}"
         responses:
           "Password:": "{{ hub_pass }}"
       loop: "{{ csv_dict['user.csv'] }}"

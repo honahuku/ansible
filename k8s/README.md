@@ -3,11 +3,16 @@ kubesprayを用いたk8sクラスタの構築
 Ubuntu 22.04で動作確認済み
 
 ```bash
-cp ./ansible.cfg kubespray/
+python3 -m pip install --user ansible==5.7.1
+python3 -m pip install --user ansible-core==2.12.5
+
 cd kubespray/
+git checkout v2.21.0
+
+cp ../ansible.cfg .
 
 cp -rfp inventory/sample inventory/mycluster
-declare -a IPS=(64.176.37.192 64.176.43.202 64.176.38.181)
+declare -a IPS=(64.176.49.58 64.176.37.189 64.176.42.47)
 CONFIG_FILE=inventory/mycluster/hosts.yaml python3 contrib/inventory_builder/inventory.py ${IPS[@]}
 
 yq e '.all.vars.ansible_user = "root"' -i inventory/mycluster/hosts.yaml

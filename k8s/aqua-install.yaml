@@ -1,0 +1,89 @@
+---
+- name: Install Aqua
+  hosts: all
+  become: yes
+  vars:
+    aqua_version: "v2.9.0"  # ここにインストールしたいaquaのバージョンを指定してください
+    aqua_opts: "-l -a"
+  tasks:
+    - name: Check if aqua_version is provided
+      fail:
+        msg: "aqua_version is required. https://github.com/aquaproj/aqua-installer"
+      when: aqua_version == ''
+
+    - name: Define AQUA_ROOT_DIR
+      set_fact:
+        aqua_root_dir: "{{ ansible_env.HOME }}/.local/share/aquaproj-aqua"
+
+    - name: Install Aqua
+      block:
+        - name: Create a directory for Aqua
+          file:
+            path: "{{ aqua_root_dir }}/bin"
+            state: directory
+
+        - name: Download Aqua
+          get_url:
+            url: "https://github.com/aquaproj/aqua/releases/download/{{ aqua_version }}/aqua_linux_amd64.tar.gz"
+            dest: "/tmp/aqua_linux_amd64.tar.gz"
+
+        - name: Extract Aqua
+          unarchive:
+            src: "/tmp/aqua_linux_amd64.tar.gz"
+            dest: "{{ aqua_root_dir }}/bin"
+            remote_src: yes
+
+        - name: Make Aqua executable
+          file:
+            path: "{{ aqua_root_dir }}/bin/aqua"
+            mode: '0755'
+
+        - name: Create directory
+          file:
+            path: "{{ ansible_env.HOME }}/.config/aquaproj-aqua"
+            state: directory
+
+        - name: Copy aqua.yaml to remote
+          copy:
+            src: aqua.yaml
+            dest: "{{ ansible_env.HOME }}/.config/aquaproj-aqua/aqua.yaml"
+
+        - name: Add Aqua to PATH
+          lineinfile:
+            path: "{{ ansible_env.HOME }}/.bashrc"
+            line: 'export PATH="{{ aqua_root_dir }}/bin:$PATH"'
+            insertbefore: BOF
+
+        - name: Set AQUA_GLOBAL_CONFIG
+          lineinfile:
+            path: "{{ ansible_env.HOME }}/.bashrc"
+            line: 'export AQUA_GLOBAL_CONFIG=${AQUA_GLOBAL_CONFIG:-}:${XDG_CONFIG_HOME:-$HOME/.config}/aquaproj-aqua/aqua.yaml'
+            insertbefore: BOF
+
+        - name: Reload shell to update PATH and AQUA_GLOBAL_CONFIG
+          shell: "source {{ ansible_env.HOME }}/.bashrc"
+          args:
+            executable: /bin/bash
+
+        - name: Run Aqua with options
+          shell: "{{ aqua_root_dir }}/bin/aqua i {{ aqua_opts }}"
+          args:
+            executable: /bin/bash
+
+        - name: Create symbolic link for nerdctl
+          file:
+            src: /root/.local/share/aquaproj-aqua/bin/nerdctl
+            dest: /usr/local/bin/nerdctl
+            state: link
+
+        - name: Create symbolic links
+          file:
+            src: "{{ item.src }}"
+            dest: "{{ item.dest }}"
+            state: link
+          loop:
+            - { src: '/root/.local/share/aquaproj-aqua/bin/nerdctl', dest: '/usr/local/bin/nerdctl' }
+            - { src: '/root/.local/share/aquaproj-aqua/bin/crictl', dest: '/usr/local/bin/crictl' }
+            - { src: '/root/.local/share/aquaproj-aqua/bin/etcd', dest: '/usr/local/bin/etcd' }
+            - { src: '/root/.local/share/aquaproj-aqua/bin/kubectl', dest: '/usr/local/bin/kubectl' }
+

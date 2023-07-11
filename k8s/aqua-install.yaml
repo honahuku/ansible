@@ -3,7 +3,7 @@
   hosts: all
   become: yes
   vars:
-    aqua_version: "v2.9.0"  # ここにインストールしたいaquaのバージョンを指定してください
+    aqua_version: "v2.9.0"
     aqua_opts: "-l -a"
   tasks:
     - name: Check if aqua_version is provided
@@ -69,21 +69,3 @@
           shell: "{{ aqua_root_dir }}/bin/aqua i {{ aqua_opts }}"
           args:
             executable: /bin/bash
-
-        - name: Create symbolic link for nerdctl
-          file:
-            src: /root/.local/share/aquaproj-aqua/bin/nerdctl
-            dest: /usr/local/bin/nerdctl
-            state: link
-
-        - name: Create symbolic links
-          file:
-            src: "{{ item.src }}"
-            dest: "{{ item.dest }}"
-            state: link
-          loop:
-            - { src: '/root/.local/share/aquaproj-aqua/bin/nerdctl', dest: '/usr/local/bin/nerdctl' }
-            - { src: '/root/.local/share/aquaproj-aqua/bin/crictl', dest: '/usr/local/bin/crictl' }
-            - { src: '/root/.local/share/aquaproj-aqua/bin/etcd', dest: '/usr/local/bin/etcd' }
-            - { src: '/root/.local/share/aquaproj-aqua/bin/kubectl', dest: '/usr/local/bin/kubectl' }
-

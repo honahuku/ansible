@@ -3,31 +3,17 @@ kubesprayを用いたk8sクラスタの構築
 Ubuntu 22.04で動作確認済み
 
 ```bash
-python3 -m pip install --user ansible==5.7.1
-python3 -m pip install --user ansible-core==2.12.5
+aqua i -a -l
 
-cd kubespray/
-git checkout v2.21.0
+clustername="k0s-cluster-20230711"
+./set-ips.sh root "$clustername" "~/.ssh/id_ed25519" 192.0.2.0 192.0.2.1 192.0.2.2
 
-cp ../ansible.cfg .
+ansible-playbook -i inventory.yaml allow-ufw-k8s.yaml
+ansible-playbook -i inventory.yaml aqua-install.yaml
 
-cp -rfp inventory/sample inventory/mycluster
-declare -a IPS=(64.176.49.58 64.176.37.189 64.176.42.47)
-CONFIG_FILE=inventory/mycluster/hosts.yaml python3 contrib/inventory_builder/inventory.py ${IPS[@]}
+k0sctl apply --config k0s-cluster-20230711-config.yaml --no-wait
 
-yq e '.all.vars.ansible_user = "root"' -i inventory/mycluster/hosts.yaml
-# yq e '.kube_proxy_strict_arp = true' -i inventory/mycluster/group_vars/k8s_cluster/k8s-cluster.yml
-# yq e '.metallb_enabled = true' -i inventory/mycluster/group_vars/k8s_cluster/addons.yml
-
-ansible-playbook -i inventory/mycluster/hosts.yaml  --become --become-user=root ../allow-ufw-k8s.yaml
-ansible-playbook -i inventory/mycluster/hosts.yaml  --become --become-user=root ../aqua-install.yaml
-# ansible-playbook -i inventory/mycluster/hosts.yaml  --become --become-user=root cluster.yml -e kube_network_plugin=cilium
-ansible-playbook -i inventory/mycluster/hosts.yaml  --become --become-user=root cluster.yml
-
-# ansible-playbook -i inventory/mycluster/hosts.yaml  --become --become-user=root reset.yml
+mkdir -p ~/.kube/
+k0sctl kubeconfig --config "$clustername"-config.yaml > ~/.kube/"$clustername"-config
+echo "export KUBECONFIG=~/.kube/$clustername-config" >> "$HOME/.bashrc"
 ```
-## kubespray内で利用するツールのPATHにシンボリックリンクを貼る
-
-kubespray内で使うツールのインストールはkubesprayがやってくれないので自分でインストールする。
-今回はaquaを使ったので以下のようにシンボリックリンクを貼って対応した
-https://github.com/honahuku/ansible/blob/main/k8s/aqua-install.yaml#L79-L88

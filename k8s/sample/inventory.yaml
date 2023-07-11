@@ -1,0 +1,9 @@
+all:
+  children:
+    k0s-hosts:
+      hosts:
+        192.0.2.0:
+        192.0.2.1:
+        192.0.2.2:
+      vars:
+        ansible_user: root

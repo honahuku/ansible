@@ -6,7 +6,7 @@ Ubuntu 22.04で動作確認済み
 aqua i -a -l
 
 clustername="k0s-cluster-20230711"
-./set-ips.sh root "$clustername" "~/.ssh/id_ed25519" 64.176.46.205 64.176.38.200 64.176.50.168 
+./set-ips.sh root "$clustername" "~/.ssh/id_ed25519" 192.0.2.0 192.0.2.1 192.0.2.2
 
 ansible-playbook -i inventory.yaml allow-ufw-k8s.yaml
 ansible-playbook -i inventory.yaml aqua-install.yaml

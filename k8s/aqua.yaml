@@ -10,8 +10,7 @@ registries:
 - type: standard
   ref: v4.25.0 # renovate: depName=aquaproj/aqua-registry
 packages:
-- name: containerd/nerdctl@v1.4.0
-- name: kubernetes-sigs/cri-tools/crictl@v1.27.0
 - name: mikefarah/yq@v4.34.1
 - name: kubernetes/kubectl@v1.27.3
-- name: etcd-io/etcd@v3.5.9
+- name: k0sproject/k0sctl@v0.15.2
+- name: derailed/k9s@v0.27.4

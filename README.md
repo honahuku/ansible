@@ -7,6 +7,11 @@ python3 -m pip install --user ansible
 ```
 https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html#pip-install
 
+もしくはaptで入れる  
+https://docs.ansible.com/ansible/2.9_ja/installation_guide/intro_installation.html#ubuntu-ansible
+
+
+## トラブルシューティング
 ```
 WARNING: The scripts ansible, ansible-config, ansible-connection, ansible-console, ansible-doc, ansible-galaxy, ansible-inventory, ansible-playbook, ansible-pull and ansible-vault are installed in '/home/honahuku/.local/bin' which is not on PATH.
 Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.
@@ -16,6 +21,11 @@ Consider adding this directory to PATH or, if you prefer to suppress this warnin
 set -o noclobber && echo export PATH='$PATH:$HOME/.local/bin' >> ~/.bashrc
 ```
 
+```bash
+ERROR! couldn't resolve module/action 'community.general.read_csv'.
+```
+と言われた場合はansibleのバージョンが最新で有ることを確認する。  
+apt でリポジトリを追加せず単に`apt install ansible`をすると古いものが降ってくるので注意
 ## ansible-vault
 `ansible-vault`でsecretを暗号化しコミット可能な形にできる  
 ### 暗号化

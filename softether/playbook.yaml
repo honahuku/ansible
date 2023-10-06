@@ -6,6 +6,12 @@
         upgrade: no
         update_cache: yes
 
+    - name: python3 のインストール確認
+      apt:
+        name: python3
+        state: present
+      when: ansible_os_family == "Debian"
+
     - name: 必要なパッケージをインストール
       apt:
         name:
@@ -88,6 +94,7 @@
         - group.csv
         - policy.csv
         - user.csv
+        - disable_ddnsclient.py
 
     - name: secretをbashの変数に格納
       shell: |
@@ -113,6 +120,9 @@
 
     - name: ブリッジを作成
       shell: "timeout 5 /usr/local/vpnserver/vpncmd /server localhost /password:{{ srv_pass }} /cmd BridgeCreate vpnhub1 /DEVICE:soft /TAP:yes"
+
+    - name: ダイナミック DNS 機能を無効にする
+      shell: "timeout 5 python3 disable_ddnsclient.py /usr/local/vpnserver/vpn_server.config"
 
     - name: csvを変数に格納
       community.general.read_csv:
@@ -174,6 +184,7 @@
         - group.csv
         - policy.csv
         - user.csv
+        - disable_ddnsclient.py
 
     - name: NICの状態を取得する
       setup:

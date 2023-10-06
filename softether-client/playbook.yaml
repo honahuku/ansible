@@ -1,0 +1,173 @@
+- hosts: ansible-hosts
+  become: yes
+  tasks:
+    - name: aptのアップデート
+      apt:
+        upgrade: no
+        update_cache: yes
+
+    - name: 必要なパッケージをインストール
+      apt:
+        name:
+          - curl
+          - grep
+          - make
+          - dnsmasq
+          - gcc
+          - libssl-dev
+          - libcrypto++-dev
+          - libiconv-hook-dev
+          - libedit-dev
+          - libncurses5-dev
+          - zlib1g-dev
+          - libpthread-stubs0-dev
+        state: present
+
+    - name: SoftEtherの最新版リンクを取得
+      shell: >
+        URL="https://www.softether-download.com/files/softether/";
+        latest_link=$(curl -fsSL $URL | grep -oP '(?<=HREF=")/files/softether/.+?-rtm-.+?(?=")' | sort -Vr | head -n 1);
+        echo "https://www.softether-download.com${latest_link}"
+      register: version_link
+      changed_when: False
+
+    - name: マシンのアーキテクチャを取得
+      ansible.builtin.setup:
+        gather_subset:
+          - "!all"
+          - "!min"
+          - hardware
+
+    - name: ダウンロードリンクを生成
+      set_fact:
+        download_link: >-
+          {{ version_link.stdout }}Linux/SoftEther_VPN_Client/{{ '64bit_-_Intel_x64_or_AMD64' if ansible_facts['architecture'] == 'x86_64' else '64bit_-_ARM_64bit' }}/softether-vpnclient-{{ version_link.stdout.split('/')[-2].split('-tree')[0] }}-linux-{{ 'x64' if ansible_facts['architecture'] == 'x86_64' else 'arm64' }}-64bit.tar.gz
+
+    # - name: SoftEtherをダウンロードして解凍
+    #   ansible.builtin.unarchive:
+    #     src: "{{ download_link }}"
+    #     dest: /usr/local/
+    #     remote_src: yes
+
+    # - name: SoftEtherをビルド
+    #   command:
+    #     cmd: make
+    #     chdir: /usr/local/vpnclient
+
+    # - name: vpnclientのパーミッションを設定
+    #   ansible.builtin.file:
+    #     path: /usr/local/vpnclient/
+    #     state: directory
+    #     mode: 600
+    #     recurse: yes
+
+    # - name: vpncmdのパーミッションを設定
+    #   ansible.builtin.file:
+    #     path: /usr/local/vpnclient/vpncmd
+    #     state: file
+    #     mode: 700
+
+    # - name: vpnclient のパーミッションを設定
+    #   ansible.builtin.file:
+    #     path: /usr/local/vpnclient/vpnclient
+    #     state: file
+    #     mode: 700
+
+    - name: SoftEtherを起動
+      command: /usr/local/vpnclient/vpnclient start
+
+    - name: ansibleで使う設定ファイルをコピー
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: "/usr/local/vpnclient/{{ item }}"
+        owner: "{{ ansible_user }}"
+        mode: 664
+        decrypt: yes
+      loop:
+        - secret.txt
+
+    - name: secretをbashの変数に格納
+      shell: |
+        source /usr/local/vpnclient/secret.txt
+        echo "srv_url=${srv_url} hub_name=${hub_name} username=${username} con_name=${con_name} con_passwd=${con_passwd} proxy_host=${proxy_host} proxy_port=${proxy_port} maxtcp=${maxtcp}"
+      register: secrets
+      args:
+        executable: /bin/bash
+
+    - name: secretをfactに格納
+      set_fact:
+        srv_url: "{{ secrets.stdout.split()[0].split('=')[1] }}"
+        hub_name: "{{ secrets.stdout.split()[1].split('=')[1] }}"
+        username: "{{ secrets.stdout.split()[2].split('=')[1] }}"
+        con_name: "{{ secrets.stdout.split()[3].split('=')[1] }}"
+        con_passwd: "{{ secrets.stdout.split()[4].split('=')[1] }}"
+        proxy_host: "{{ secrets.stdout.split()[5].split('=')[1] }}"
+        proxy_port: "{{ secrets.stdout.split()[6].split('=')[1] }}"
+        maxtcp: "{{ secrets.stdout.split()[7].split('=')[1] }}"
+
+    # - name: 新規仮想 LAN カードの作成
+    #   shell: "timeout 5 /usr/local/vpnclient/vpncmd /client localhost /cmd NicCreate VPN"
+
+    # - name: 新しい接続設定の作成
+    #   shell: "timeout 5 /usr/local/vpnclient/vpncmd /client localhost /cmd AccountCreate {{ con_name }} /SERVER:{{ srv_url }}:443 /HUB:{{ hub_name }} /USERNAME:{{ username }} /NICNAME:VPN"
+
+    - name: 接続設定のユーザー認証の種類をパスワード認証に設定
+      shell: "timeout 5 /usr/local/vpnclient/vpncmd /client localhost /cmd AccountPasswordSet {{ con_name }} /PASSWORD:{{ con_passwd }} /TYPE:standard"
+
+    - name: 接続設定の通信時のSSL暗号化の無効化
+      shell: "timeout 5 /usr/local/vpnclient/vpncmd /client localhost /cmd AccountEncryptDisable {{ con_name }}"
+
+    - name: 接続設定の接続方法を HTTP プロキシサーバー経由接続に設定
+      shell: "timeout 5 /usr/local/vpnclient/vpncmd /client localhost /cmd AccountProxyHttp {{ con_name }} /SERVER:{{ proxy_host }}:{{ proxy_port }}"
+
+    - name: 接続設定の高度な通信設定の設定
+      shell: "timeout 5 /usr/local/vpnclient/vpncmd /client localhost /cmd AccountDetailSet {{ con_name }} /MAXTCP:{{ maxtcp }} /INTERVAL:1 /TTL:0 /HALF:no /BRIDGE:no /MONITOR:no /NOTRACK:no /NOQOS:no"
+
+    - name: インターネット接続の維持機能の有効化
+      shell: "timeout 5 /usr/local/vpnclient/vpncmd /client localhost /cmd KeepEnable"
+
+    # - name: 接続設定を使用して VPN Server へ接続を開始
+    #   shell: "timeout 5 /usr/local/vpnclient/vpncmd /client localhost /cmd AccountConnect {{ con_name }}"
+
+    - name: DHCP で VNIC に IP アドレスを割り当てる
+      shell: "timeout 20 dhclient vpn_vpn"
+
+# memo
+# https://nemui.online/2022/02/18/284/
+# ここにある方法で、
+# ```bash
+# dhclient vpn_vpn
+# ```
+# を実行しDHCPでアドレスを振る
+# IPは振られたがトラフィックがそこを流れないのでデフォルトルートを設定する？(要調査)
+
+# ログを確認するには
+# watch -n 1 tail /usr/local/vpnclient/client_log/client_20231005.log
+# を実行するとよさそう
+
+    # - name: ansibleで使った設定ファイルを削除
+    #   ansible.builtin.file:
+    #     path: "/usr/local/vpnserver/{{ item }}"
+    #     state: absent
+    #   loop:
+    #     - secret.txt
+    #     - group.csv
+    #     - policy.csv
+    #     - user.csv
+
+
+    # - name: SoftEtherをsystemdに登録
+    #   copy:
+    #     src: vpnserver.service
+    #     dest: /lib/systemd/system
+
+    # - name: サービスを有効化
+    #   ansible.builtin.systemd:
+    #     state: started
+    #     name: vpnserver
+    #     daemon_reload: true
+    #     enabled: true
+    #   register: result
+    #   until: result is succeeded
+    #   retries: 3
+    #   delay: 10

@@ -30,7 +30,7 @@ apt でリポジトリを追加せず単に`apt install ansible`をすると古�
 `ansible-vault`でsecretを暗号化しコミット可能な形にできる  
 ### 暗号化
 ```bash
-ansible-vault encrypt secret.txt user.csv
+ansible-vault encrypt secret.txt
 ```
 暗号化したファイルをplaybookで使う時は`--ask-vault-pass`をplaybook.yamlの前につける  
 ```bash

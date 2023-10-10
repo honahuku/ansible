@@ -1,0 +1,25 @@
+- hosts: servers
+  become: yes
+  vars:
+    github_username: honahuku
+    script_local_path: ./update_ssh_keys.sh
+    script_remote_path: /usr/local/bin/update_ssh_keys.sh
+
+  tasks:
+    - name: Ensure .ssh directory exists
+      file:
+        path: "{{ ansible_env.HOME }}/.ssh"
+        state: directory
+        mode: "0700"
+
+    - name: Copy update_ssh_keys script to remote
+      copy:
+        src: "{{ script_local_path }}"
+        dest: "{{ script_remote_path }}"
+        mode: "0755"
+
+    - name: Set up cron job to update SSH keys
+      cron:
+        name: "Update SSH keys from GitHub"
+        minute: "0"
+        job: "{{ script_remote_path }}"

@@ -18,6 +18,9 @@
         dest: "{{ script_remote_path }}"
         mode: "0755"
 
+    - name: SSH key 更新スクリプトを実行
+      shell: "{{ script_remote_path }}"
+
     - name: SSH keys を更新するための cron を設定する
       cron:
         name: "Update SSH keys from GitHub"

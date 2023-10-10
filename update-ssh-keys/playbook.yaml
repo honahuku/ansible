@@ -6,19 +6,19 @@
     script_remote_path: /usr/local/bin/update_ssh_keys.sh
 
   tasks:
-    - name: Ensure .ssh directory exists
+    - name: .ssh の作成
       file:
         path: "{{ ansible_env.HOME }}/.ssh"
         state: directory
         mode: "0700"
 
-    - name: Copy update_ssh_keys script to remote
+    - name: update_ssh_keys script をリモートにコピー
       copy:
         src: "{{ script_local_path }}"
         dest: "{{ script_remote_path }}"
         mode: "0755"
 
-    - name: Set up cron job to update SSH keys
+    - name: SSH keys を更新するための cron を設定する
       cron:
         name: "Update SSH keys from GitHub"
         minute: "0"

@@ -8,9 +8,10 @@
   tasks:
     - name: .ssh の作成
       file:
-        path: "{{ ansible_env.HOME }}/.ssh"
+        path: "/home/{{ ansible_user }}/.ssh"
         state: directory
         mode: "0700"
+      become_user: "{{ ansible_user }}"
 
     - name: update_ssh_keys script をリモートにコピー
       copy:
@@ -20,9 +21,11 @@
 
     - name: SSH key 更新スクリプトを実行
       shell: "{{ script_remote_path }}"
+      become_user: "{{ ansible_user }}"
 
     - name: SSH keys を更新するための cron を設定する
       cron:
         name: "Update SSH keys from GitHub"
         minute: "0"
         job: "{{ script_remote_path }}"
+        user: "{{ ansible_user }}"

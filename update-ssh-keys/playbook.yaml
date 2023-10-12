@@ -1,0 +1,38 @@
+- hosts: servers
+  become: no
+  vars:
+    github_username: honahuku
+    script_local_path: ./update_ssh_keys.sh
+    script_remote_path: /home/{{ ansible_user }}/.scripts/update_ssh_keys.sh
+
+  tasks:
+    - name: .ssh の作成
+      file:
+        path: "/home/{{ ansible_user }}/.ssh"
+        state: directory
+        mode: "0700"
+      become_user: "{{ ansible_user }}"
+
+    - name: .scripts の作成
+      file:
+        path: "/home/{{ ansible_user }}/.scripts"
+        state: directory
+        mode: "0700"
+      become_user: "{{ ansible_user }}"
+
+    - name: update_ssh_keys.sh をリモートにコピー
+      copy:
+        src: "{{ script_local_path }}"
+        dest: "{{ script_remote_path }}"
+        mode: "0755"
+
+    - name: update_ssh_keys.sh を実行
+      shell: "{{ script_remote_path }}"
+      become_user: "{{ ansible_user }}"
+
+    - name: update_ssh_keys.sh を cron に設定する
+      cron:
+        name: "Update SSH keys from GitHub"
+        minute: "0"
+        job: "{{ script_remote_path }}"
+        user: "{{ ansible_user }}"

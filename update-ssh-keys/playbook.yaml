@@ -1,14 +1,21 @@
 - hosts: servers
-  become: yes
+  become: no
   vars:
     github_username: honahuku
     script_local_path: ./update_ssh_keys.sh
-    script_remote_path: /usr/local/bin/update_ssh_keys.sh
+    script_remote_path: /home/{{ ansible_user }}/.scripts/update_ssh_keys.sh
 
   tasks:
     - name: .ssh の作成
       file:
         path: "/home/{{ ansible_user }}/.ssh"
+        state: directory
+        mode: "0700"
+      become_user: "{{ ansible_user }}"
+
+    - name: .scripts の作成
+      file:
+        path: "/home/{{ ansible_user }}/.scripts"
         state: directory
         mode: "0700"
       become_user: "{{ ansible_user }}"

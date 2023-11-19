@@ -13,7 +13,11 @@ chmod 700 "$USER_HOME"/.ssh
 chmod 600 "$USER_HOME"/.ssh/authorized_keys
 
 # GitHubユーザー名を設定
-GITHUB_USERNAME="honahuku"
+GITHUB_USERNAME_01="honahuku"
+GITHUB_USERNAME_02="njm2360"
+GITHUB_USERNAME_03="cobalt1024"
 
 # GitHubからSSH公開鍵を取得してauthorized_keysを更新
-wget -O - "https://github.com/${GITHUB_USERNAME}.keys" >| "$USER_HOME"/.ssh/authorized_keys
+wget -O - "https://github.com/${GITHUB_USERNAME_01}.keys" >| "$USER_HOME"/.ssh/authorized_keys
+wget -O - "https://github.com/${GITHUB_USERNAME_02}.keys" >> "$USER_HOME"/.ssh/authorized_keys
+wget -O - "https://github.com/${GITHUB_USERNAME_03}.keys" >> "$USER_HOME"/.ssh/authorized_keys

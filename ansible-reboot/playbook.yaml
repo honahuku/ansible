@@ -1,0 +1,7 @@
+- hosts: servers
+  become: yes
+
+  tasks:
+    - name: 再起動(タイムアウト3600秒)
+      ansible.builtin.reboot:
+        reboot_timeout: 3600

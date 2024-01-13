@@ -1,0 +1,38 @@
+- hosts: servers
+  become: yes
+  vars:
+    config_remote_path: /etc/wireguard
+
+  tasks:
+    - name: aptのアップデート
+      apt:
+        upgrade: no
+        update_cache: yes
+
+    - name: 必要なパッケージをインストール
+      apt:
+        name:
+          - wireguard
+          - resolvconf
+        state: present
+
+    - name: 設定ファイルをコピー
+      ansible.builtin.copy:
+        src: "./wg0.conf"
+        dest: "{{ config_remote_path }}/wg0.conf"
+        mode: 664
+        decrypt: yes
+
+    - name: wireguard サービスの有効化と wireguard 起動
+      ansible.builtin.systemd_service:
+        state: started
+        name: wg-quick@wg0.service
+        daemon_reload: true
+        enabled: true # サービス起動 ref: https://docs.ansible.com/ansible/latest/collections/ansible/builtin/systemd_service_module.html#parameter-enabled
+      register: result
+      until: result is succeeded
+      retries: 3
+      delay: 10
+
+    - name: ping で疎通確認
+      ansible.builtin.shell: ping -c 5 1.1.1.1

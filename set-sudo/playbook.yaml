@@ -1,0 +1,16 @@
+- hosts: servers
+  tasks:
+    - name: aptのアップデート
+      apt:
+        upgrade: no
+        update_cache: yes
+      become: true
+      become_method: su # ref: https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_privilege_escalation.html#become-command-line-options
+
+    - name: 必要なパッケージをインストール
+      apt:
+        name:
+          - sudo
+        state: present
+      become: true
+      become_method: su

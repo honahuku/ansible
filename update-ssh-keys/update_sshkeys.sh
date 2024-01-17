@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -Ceux
+set -o pipefail
 
 # ユーザーのホームディレクトリのパスを取得
 USER_HOME=$HOME

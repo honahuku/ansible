@@ -16,8 +16,8 @@ chmod 600 "$USER_HOME"/.ssh/authorized_keys
 # GitHubユーザー名を設定
 GITHUB_USERNAME="honahuku"
 
-set +x
 # GitHubからSSH公開鍵を取得してauthorized_keysを更新
+set +x
 KEYS=$(wget -O - "https://github.com/${GITHUB_USERNAME}.keys")
 if [ -n "$KEYS" ]; then
     echo "$KEYS" >| "$USER_HOME"/.ssh/authorized_keys

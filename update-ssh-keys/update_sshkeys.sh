@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -Ceu
+set -Ceux
 
 # ユーザーのホームディレクトリのパスを取得
 USER_HOME=$HOME
@@ -15,5 +15,12 @@ chmod 600 "$USER_HOME"/.ssh/authorized_keys
 # GitHubユーザー名を設定
 GITHUB_USERNAME="honahuku"
 
+set +x
 # GitHubからSSH公開鍵を取得してauthorized_keysを更新
-wget -O - "https://github.com/${GITHUB_USERNAME}.keys" >| "$USER_HOME"/.ssh/authorized_keys
+KEYS=$(wget -O - "https://github.com/${GITHUB_USERNAME}.keys")
+if [ -n "$KEYS" ]; then
+    echo "$KEYS" >| "$USER_HOME"/.ssh/authorized_keys
+else
+    echo "ERROR: 公開鍵を取得出来ませんでした"
+fi
+set -x

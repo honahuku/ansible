@@ -1,5 +1,5 @@
 - hosts: vpnservers
-  become: yes
+  become: true
   tasks:
     - name: ansibleで使う設定ファイルをコピー
       ansible.builtin.copy:

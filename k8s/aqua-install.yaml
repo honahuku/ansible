@@ -1,9 +1,9 @@
 ---
 - name: Install Aqua
   hosts: all
-  become: yes
+  become: true
   vars:
-    aqua_version: "v2.9.0"
+    aqua_version: "v2.28.1"
     aqua_opts: "-l -a"
   tasks:
     - name: Check if aqua_version is provided
@@ -36,7 +36,7 @@
         - name: Make Aqua executable
           file:
             path: "{{ aqua_root_dir }}/bin/aqua"
-            mode: '0755'
+            mode: "0755"
 
         - name: Create directory
           file:
@@ -57,7 +57,7 @@
         - name: Set AQUA_GLOBAL_CONFIG
           lineinfile:
             path: "{{ ansible_env.HOME }}/.bashrc"
-            line: 'export AQUA_GLOBAL_CONFIG=${AQUA_GLOBAL_CONFIG:-}:${XDG_CONFIG_HOME:-$HOME/.config}/aquaproj-aqua/aqua.yaml'
+            line: "export AQUA_GLOBAL_CONFIG=${AQUA_GLOBAL_CONFIG:-}:${XDG_CONFIG_HOME:-$HOME/.config}/aquaproj-aqua/aqua.yaml"
             insertbefore: BOF
 
         - name: Reload shell to update PATH and AQUA_GLOBAL_CONFIG

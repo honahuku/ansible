@@ -1,11 +1,15 @@
 - hosts: servers
-  become: no
+  become: false
   vars:
     github_username: honahuku
     script_local_path: ./update_sshkeys.sh
     script_remote_path: /home/{{ ansible_user }}/.scripts/update_sshkeys.sh
 
   tasks:
+    - name: shell を bash に
+      become: true
+      shell: /usr/bin/chsh -s /bin/bash {{ ansible_user }}
+
     - name: .ssh の作成
       file:
         path: "/home/{{ ansible_user }}/.ssh"

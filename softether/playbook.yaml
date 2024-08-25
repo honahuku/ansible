@@ -1,5 +1,5 @@
 - hosts: vpnservers
-  become: yes
+  become: true
   tasks:
     - name: aptのアップデート
       apt:

@@ -6,8 +6,7 @@ Ubuntu 22.04で動作確認済み
 ```bash
 ansible-playbook -i inventory.yaml playbook.yaml
 
-# 必要に応じて
-sudo apt-get install sshpass
 # SSHをパスワード認証で
+sudo apt-get install sshpass
 ansible-playbook -i inventory.yaml playbook.yaml -k
 ```

@@ -1,0 +1,97 @@
+- hosts: servers
+  become: true
+  vars_files:
+    - vars/vault.yml
+
+  tasks:
+    - name: aptのアップデート
+      apt:
+        upgrade: no
+        update_cache: yes
+      become: true
+      become_method: su # ref: https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_privilege_escalation.html#become-command-line-options
+
+    - name: 最小限必要なパッケージを apt で入れる
+      apt:
+        name:
+          - sudo
+          - vim
+          - htop
+          - ca-certificates
+        state: present
+      become: true
+      become_method: su
+
+    - name: PostgreSQL リポジトリ用の鍵置き場を作る
+      file:
+        path: /usr/share/postgresql-common/pgdg
+        state: directory
+        mode: "0755"
+      become: true
+
+    - name: GPG key を落としてくる
+      get_url:
+        url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+        dest: /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+        mode: "0644"
+
+    - name: PostgreSQL のリポジトリを sources.list.d に追加する
+      shell: |
+        echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list
+      become: true
+
+    - name: リポジトリ追加後の apt update
+      apt:
+        upgrade: no
+        update_cache: yes
+      become: true
+
+    - name: PostgreSQL を入れる
+      apt:
+        name:
+          - postgresql-14=14.13-1.pgdg24.04+1
+          - libpq-dev # ansible 用
+          - python3-psycopg2 # ansible 用
+        state: present
+      become: true
+
+    - name: PostgreSQL のバージョン取得
+      shell: psql --version
+      register: psql_result
+
+    - name: PostgreSQL が 14系であることを確認する
+      assert:
+        that:
+          - "'14.13' in psql_result.stdout"
+          - "psql_result.stdout.startswith('psql (PostgreSQL) 14.13')"
+        fail_msg: "PostgreSQL の version が 14.13 ではありません"
+        success_msg: "PostgreSQL の version は 14.13 です"
+
+    - name: PostgreSQL のサービス有効化
+      service:
+        name: postgresql
+        state: started
+        enabled: yes
+
+    - name: DB のパスワード設定
+      become_user: postgres
+      postgresql_user:
+        name: postgres
+        password: "{{ postgres_password}}"
+        role_attr_flags: superuser
+
+    - name: plausible の DB 作成
+      become_user: postgres
+      postgresql_db:
+        name: plausible_db
+        owner: postgres
+        encoding: UTF8
+        template: template0
+
+    - name: nextcloud の DB 作成
+      become_user: postgres
+      postgresql_db:
+        name: nextcloud
+        owner: postgres
+        encoding: UTF8
+        template: template0

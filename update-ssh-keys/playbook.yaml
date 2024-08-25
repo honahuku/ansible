@@ -1,4 +1,5 @@
 - hosts: servers
+  become: false
   vars:
     github_username: honahuku
     script_local_path: ./update_sshkeys.sh

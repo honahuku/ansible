@@ -10,4 +10,7 @@ ansible-playbook -i inventory.yaml playbook.yaml
 sudo apt-get install sshpass
 # SSHをパスワード認証で
 ansible-playbook -i inventory.yaml playbook.yaml -k
+
+# sudo でパスワードが必要なとき
+ansible-playbook -i inventory.yaml playbook.yaml --ask-become-pass
 ```

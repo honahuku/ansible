@@ -1,5 +1,5 @@
 - hosts: servers
-  become: yes
+  become: true
 
   tasks:
     - name: 再起動(タイムアウト3600秒)

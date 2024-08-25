@@ -1,5 +1,5 @@
 - hosts: servers
-  become: yes
+  become: true
   vars:
     config_remote_path: /etc/wireguard
 

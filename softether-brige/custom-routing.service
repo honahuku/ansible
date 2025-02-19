@@ -1,0 +1,11 @@
+[Unit]
+Description=Custom Routing
+After=vpnserver.service
+
+[Service]
+Type=oneshot
+ExecStartPre=/bin/sleep 10
+ExecStart=/usr/local/bin/custom-routing.sh
+
+[Install]
+WantedBy=multi-user.target

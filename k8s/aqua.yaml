@@ -8,9 +8,9 @@
 #   - all
 registries:
 - type: standard
-  ref: v4.89.0 # renovate: depName=aquaproj/aqua-registry
+  ref: v4.91.0 # renovate: depName=aquaproj/aqua-registry
 packages:
-- name: mikefarah/yq@v4.35.2
+- name: mikefarah/yq@v4.40.2
 - name: kubernetes/kubectl@v1.28.4
 - name: k0sproject/k0sctl@v0.16.0
 - name: derailed/k9s@v0.28.2
